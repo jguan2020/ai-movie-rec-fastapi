@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FindMovies - Find a Movie</title>
+    <link rel="icon" href="/static/theater-masks-blue.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <header class="dashboard-bar">
+      <div class="dashboard-inner">
+        <div class="dashboard-left">
+          <a class="dashboard-home" href="/">Home</a>
+        </div>
+        <nav class="dashboard-items"></nav>
+        <div class="dashboard-right">
+          {% if current_user %}
+            <a class="dashboard-link dashboard-icon" href="/" aria-label="Search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.5-3.5"></path>
+              </svg>
+            </a>
+            <a class="dashboard-link" href="/premium">Premium</a>
+            <a class="dashboard-link" href="/favorites">Favorites</a>
+            <a class="dashboard-link" href="/settings">Settings</a>
+            <span class="dashboard-user">{{ current_user }}</span>
+            <a class="dashboard-link" href="/logout">Logout</a>
+          {% else %}
+            <a class="dashboard-link dashboard-icon" href="/" aria-label="Search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.5-3.5"></path>
+              </svg>
+            </a>
+            <a class="dashboard-link" href="/premium">Premium</a>
+            <a class="dashboard-link" href="/settings">Settings</a>
+            <a class="dashboard-link" href="/login">Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+    <main class="page">
+      <section class="hero-card">
+        <h1>Find A Movie</h1>
+        <p>Describe topics or concepts and get matched movies from curated, tagged films.</p>
+      </section>
+
+      {% if notice %}
+        <div class="notice">{{ notice }}</div>
+      {% endif %}
+
+      <form class="search-form" method="post" action="/" id="search-form">
+        <div class="field">
+          <label for="language">Language</label>
+          <select id="language" name="language">
+            {% for opt in lang_options %}
+              <option value="{{ opt.value }}" {% if opt.value == selected_language %}selected{% endif %}>
+                {{ opt.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <p class="hint">
+          Try keywords like: <code>robots</code>, <code>war</code>, <code>aliens</code>,
+          <code>superheroes</code>, <code>time travel</code>, <code>apocalypse</code>, <code>heist</code>.
+        </p>
+
+        <div class="field">
+          <label for="overview_query">Describe what you want using keywords separated by commas</label>
+          <textarea
+            id="overview_query"
+            name="overview_query"
+            placeholder="dystopian, robot, war"
+            rows="3"
+          >{{ overview_query }}</textarea>
+        </div>
+
+        <button type="submit" class="primary">Find movies</button>
+      </form>
+
+      <div id="loader" class="loader-wrap hidden">
+        <div class="loader"></div>
+        <span>Loading...</span>
+      </div>
+
+      {% if chosen_tags %}
+        <div class="matched-tags">
+          <span>Matched tags:</span>
+          {% for tag in chosen_tags %}
+            <code>{{ tag }}</code>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if not has_search and featured %}
+        <h2>Featured</h2>
+        <div class="featured-grid">
+          {% for movie in featured %}
+            <div
+              class="featured-card movie-row"
+              role="button"
+              tabindex="0"
+              data-title="{{ movie.title }}"
+              data-release-date="{{ movie.release_date or '' }}"
+              data-rating="{{ movie.rating or '' }}"
+              data-runtime="{{ movie.runtime or '' }}"
+              data-genres="{{ movie.genres or '' }}"
+              data-keywords="{{ movie.pills | join(', ') }}"
+              data-matched="{{ movie.matched or '' }}"
+              data-overview="{{ movie.overview or '' }}"
+              data-can-overview="{{ 'true' if is_premium else 'false' }}"
+              data-poster-url="{{ movie.poster_url or '' }}"
+            >
+              <div class="poster-frame">
+                {% if movie.poster_url %}
+                  <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="poster" />
+                {% else %}
+                  <div class="poster-placeholder">No poster</div>
+                {% endif %}
+                <button
+                  class="favorite-toggle {% if movie.is_favorite %}active{% endif %}"
+                  type="button"
+                  data-auth="{{ 'true' if current_user else 'false' }}"
+                  data-enabled="{{ 'true' if favorites_enabled else 'false' }}"
+                  data-title="{{ movie.title }}"
+                  data-release-date="{{ movie.release_date }}"
+                  data-poster-path="{{ movie.poster_path }}"
+                  data-genres="{{ movie.genres }}"
+                  aria-label="Toggle favorite"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3.6l2.6 5.4 6 0.9-4.3 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.3-4.2 6-0.9z" />
+                  </svg>
+                </button>
+              </div>
+              <div class="result-card">
+                <strong>{{ movie.title }}</strong>
+                <div class="meta">{{ movie.meta }}</div>
+                <div class="meta">{{ movie.genres }}</div>
+              </div>
+              {% if movie.pills %}
+                <div class="pills">
+                  {% for tag in movie.pills %}
+                    <span class="pill">{{ tag }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if has_search %}
+        {% if is_premium %}
+          <div class="results-summary">Showing {{ results_count }} result(s).</div>
+        {% else %}
+          <div class="results-summary results-locked">
+            <span class="lock-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                <path d="M12 14v2"></path>
+              </svg>
+            </span>
+            <span>Join to see all results. Only showing 10.</span>
+          </div>
+        {% endif %}
+        {% for group in grouped_results %}
+          <h3>{{ group.label }} ({{ group.count }})</h3>
+          {% for movie in group["items"] %}
+            <div
+              class="result-row movie-row"
+              role="button"
+              tabindex="0"
+              data-title="{{ movie.title }}"
+              data-release-date="{{ movie.release_date or '' }}"
+              data-rating="{{ movie.rating or '' }}"
+              data-runtime="{{ movie.runtime or '' }}"
+              data-genres="{{ movie.genres or '' }}"
+              data-keywords="{{ movie.pills | join(', ') }}"
+              data-matched="{{ movie.matched or '' }}"
+              data-overview="{{ movie.overview or '' }}"
+              data-can-overview="{{ 'true' if is_premium else 'false' }}"
+              data-poster-url="{{ movie.poster_url or '' }}"
+            >
+              <div class="poster-frame">
+                {% if movie.poster_url %}
+                  <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="poster" />
+                {% else %}
+                  <div class="poster-placeholder large">No poster</div>
+                {% endif %}
+                <button
+                  class="favorite-toggle {% if movie.is_favorite %}active{% endif %}"
+                  type="button"
+                  data-auth="{{ 'true' if current_user else 'false' }}"
+                  data-enabled="{{ 'true' if favorites_enabled else 'false' }}"
+                  data-title="{{ movie.title }}"
+                  data-release-date="{{ movie.release_date }}"
+                  data-poster-path="{{ movie.poster_path }}"
+                  data-genres="{{ movie.genres }}"
+                  aria-label="Toggle favorite"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3.6l2.6 5.4 6 0.9-4.3 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.3-4.2 6-0.9z" />
+                  </svg>
+                </button>
+              </div>
+              <div>
+                <div class="result-card result-card-wide">
+                  <div class="result-card-main">
+                    <strong>{{ movie.title }}</strong>
+                    <div class="meta">{{ movie.meta }}</div>
+                    <div class="meta">{{ movie.genres }}</div>
+                    {% if movie.matched %}
+                      <div class="meta matched">Matches: {{ movie.matched }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="result-card-overview">
+                    <div class="overview-title">Overview</div>
+                    {% if is_premium %}
+                      <div class="overview-text">
+                        {{ movie.overview if movie.overview else "No overview available." }}
+                      </div>
+                    {% else %}
+                      <div class="overview-locked">
+                        <a class="overview-link" href="/premium">
+                          <span class="lock-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                              <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                              <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                              <path d="M12 14v2"></path>
+                            </svg>
+                          </span>
+                          <span>Join to see overviews</span>
+                        </a>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+                {% if movie.pills %}
+                  <div class="pills">
+                    {% for tag in movie.pills %}
+                      <span class="pill">{{ tag }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        {% endfor %}
+      {% endif %}
+    </main>
+    <div class="modal" id="movie-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-modal-close></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <button class="modal-close" type="button" data-modal-close>Close</button>
+        <div class="modal-body">
+          <div class="modal-poster">
+            <img id="modal-poster" alt="" />
+            <div id="modal-placeholder" class="poster-placeholder modal-placeholder">No poster</div>
+          </div>
+          <div class="modal-info">
+            <h2 id="modal-title"></h2>
+            <ul class="modal-list">
+              <li class="modal-item">
+                <span class="modal-label">Release date</span>
+                <span id="modal-release"></span>
+              </li>
+              <li class="modal-item">
+                <span class="modal-label">Rating</span>
+                <span id="modal-rating"></span>
+              </li>
+              <li class="modal-item">
+                <span class="modal-label">Runtime</span>
+                <span id="modal-runtime"></span>
+              </li>
+              <li class="modal-item">
+                <span class="modal-label">Genres</span>
+                <span id="modal-genres"></span>
+              </li>
+              <li class="modal-item">
+                <span class="modal-label">Keywords</span>
+                <span id="modal-keywords"></span>
+              </li>
+              <li class="modal-item">
+                <span class="modal-label">Matches</span>
+                <span id="modal-matches"></span>
+              </li>
+              <li class="modal-item modal-overview-item">
+                <span class="modal-label">Overview</span>
+                <div class="modal-overview-body">
+                  <div id="modal-overview" class="modal-overview-text"></div>
+                  <div id="modal-overview-locked" class="overview-locked overview-locked-inline hidden">
+                    <a class="overview-link" href="/premium">
+                      <span class="lock-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                          <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                          <path d="M12 14v2"></path>
+                        </svg>
+                      </span>
+                      <span>Join to see overviews</span>
+                    </a>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

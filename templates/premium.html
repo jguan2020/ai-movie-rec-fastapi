@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FindMovies - Premium</title>
+    <link rel="icon" href="/static/theater-masks-blue.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="/static/premium.js" defer></script>
+  </head>
+  <body data-stripe-key="{{ stripe_publishable_key }}">
+    <header class="dashboard-bar">
+      <div class="dashboard-inner">
+        <div class="dashboard-left">
+          <a class="dashboard-home" href="/">Home</a>
+        </div>
+        <nav class="dashboard-items"></nav>
+        <div class="dashboard-right">
+          {% if current_user %}
+            <a class="dashboard-link dashboard-icon" href="/" aria-label="Search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.5-3.5"></path>
+              </svg>
+            </a>
+            <a class="dashboard-link" href="/premium">Premium</a>
+            <a class="dashboard-link" href="/favorites">Favorites</a>
+            <a class="dashboard-link" href="/settings">Settings</a>
+            <span class="dashboard-user">{{ current_user }}</span>
+            <a class="dashboard-link" href="/logout">Logout</a>
+          {% else %}
+            <a class="dashboard-link dashboard-icon" href="/" aria-label="Search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.5-3.5"></path>
+              </svg>
+            </a>
+            <a class="dashboard-link" href="/premium">Premium</a>
+            <a class="dashboard-link" href="/settings">Settings</a>
+            <a class="dashboard-link" href="/login">Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+    <main class="page">
+      <section class="hero-card">
+        <h1>Premium Plans</h1>
+        <p>Pick the tier that fits your search habits.</p>
+      </section>
+
+      {% if error %}
+        <div class="notice error">{{ error }}</div>
+      {% endif %}
+      {% if message %}
+        <div class="notice success">{{ message }}</div>
+      {% endif %}
+
+      <div class="auth-grid">
+        <section class="auth-card">
+          <h2>Free</h2>
+          {% if not is_premium %}
+            <div class="price-tag">Current</div>
+          {% endif %}
+          <ul class="feature-list">
+            <li>10 movie results per search</li>
+            <li>10 favorited movies cap</li>
+            <li>Basic recommendations</li>
+          </ul>
+          {% if not is_premium %}
+            <div class="result-card">
+              <strong>Status</strong>
+              <div class="meta">Active</div>
+            </div>
+          {% endif %}
+        </section>
+        <section class="auth-card">
+          <h2>Premium</h2>
+          {% if is_premium %}
+            <div class="price-tag">Current</div>
+          {% else %}
+            <div class="price-tag">{{ premium_price_text }}</div>
+          {% endif %}
+          <ul class="feature-list">
+            <li>50 movie results per search</li>
+            <li>Unlimited favorites</li>
+            <li>Movie overviews</li>
+            <li>Priority new features</li>
+          </ul>
+          {% if not current_user %}
+            <div class="auth-cta">
+              <p class="meta">Log in to manage your subscription.</p>
+              <a class="primary" href="/login">Login</a>
+            </div>
+          {% elif is_premium %}
+            <div class="result-card">
+              <strong>Status</strong>
+              <div class="meta">
+                {% if cancel_at_period_end and period_end_text %}
+                  Active until {{ period_end_text }}
+                {% else %}
+                  Active
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <button class="primary" type="button" id="upgrade-button">Upgrade to Premium</button>
+            <div id="checkout-error" class="notice error hidden"></div>
+          {% endif %}
+        </section>
+      </div>
+    </main>
+    <div id="checkout-overlay" class="checkout-overlay" aria-hidden="true">
+      <div class="checkout-backdrop" data-checkout-close></div>
+      <aside class="checkout-drawer" role="dialog" aria-modal="true" aria-label="Stripe checkout">
+        <div class="checkout-header">
+          <h3>Upgrade to Premium</h3>
+          <button class="checkout-close" type="button" data-checkout-close>Close</button>
+        </div>
+        <div id="checkout-loading" class="checkout-loading hidden">Loading secure checkout…</div>
+        <div id="checkout-mount" class="checkout-mount"></div>
+      </aside>
+    </div>
+  </body>
+</html>

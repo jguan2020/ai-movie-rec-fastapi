@@ -1,0 +1,1000 @@
+biography/true story	4245
+romance	2629
+comedy	2490
+crime	1992
+documentary	1817
+music/bands	1696
+coming-of-age	1535
+family	1003
+friendship	989
+family drama	988
+animation	985
+military	928
+historical	906
+action	892
+television	810
+war	810
+literary adaptation	748
+music	687
+thriller	658
+fantasy	655
+musical	643
+sports	585
+mystery	585
+survival	568
+coma	549
+murder	544
+adventure	535
+world war ii	529
+science fiction	529
+marriage	507
+investigation	501
+courtroom/legal	492
+horror	491
+stand-up comedy	488
+journalism/investigation	454
+acting	423
+filmmaking	416
+revenge	391
+supernatural	384
+live performance	365
+satire	361
+true story	358
+religion	356
+western	355
+teen romance	332
+theatre	332
+politics	329
+film industry	328
+myth/legend	327
+film distribution	322
+experimental film	315
+adaptation	315
+police	310
+social justice	305
+superheroes	305
+visual arts	300
+black comedy	298
+school	294
+stage performance	293
+prison	290
+agriculture	286
+robbery	284
+military dictatorship	277
+political protest	266
+broadcasting	266
+dance	261
+remake	261
+ensemble cast	257
+short story adaptation	256
+experimental music	253
+musicians	247
+cinema history	247
+organized crime	247
+children	242
+film	239
+magic	238
+action comedy	237
+space	237
+theater	237
+sequel	236
+patriotism	235
+period piece	234
+power struggle	233
+illustration	233
+athlete	232
+censorship	232
+medicine	231
+road trip	231
+terrorism	230
+professional wrestling	229
+spies/espionage	228
+translation	227
+heist	224
+concerts	221
+television film	220
+forgiveness	220
+compilation	219
+child actor	219
+farce	219
+poverty	218
+labor movement	217
+university	215
+great depression	214
+multilingual	214
+relationships	214
+aliens	213
+celebrity	211
+christmas	211
+consumerism	210
+martial arts	210
+nightlife	206
+servants	206
+rock	206
+widowhood	205
+activism	205
+detective	205
+small town	204
+love triangle	203
+international co-production	202
+psychological trauma	202
+museum	201
+elections	199
+political oppression	199
+corporate corruption	199
+dinosaurs	196
+film festival	196
+dysfunctional family	194
+romantic comedy	194
+battle royal	193
+variety show	192
+caste discrimination	192
+historical figure	192
+religion/faith	192
+drugs	191
+19th-century	190
+urban poverty	189
+urban life	188
+nonlinear narrative	187
+counterculture	186
+psychological thriller	186
+serial killer	185
+working class	182
+social media	182
+family separation	182
+true crime	182
+plane crash	181
+estrangement	179
+earthquake	178
+streaming release	177
+grief	177
+violence	177
+novel adaptation	177
+1960s	176
+smuggling	175
+blacklisting	175
+psychological	175
+trial	174
+found footage	174
+live-action	174
+gender identity	174
+rural community	173
+political thriller	173
+funk	172
+fairy tales	171
+serial killers	169
+anthology	169
+roommates	168
+jealousy	167
+border	166
+kidnapping	166
+blind protagonist	165
+chronic illness	165
+father-daughter relationship	164
+comedy specials	164
+espionage	164
+disability	164
+veteran	163
+firefighters	163
+women's rights	162
+school shooting	162
+film production	161
+corruption	160
+high school	160
+film noir	160
+animal rights	158
+vacation	157
+cross-dressing	157
+tragedy	157
+nationalism	155
+erotic	155
+tag team	155
+underwater	155
+anime	155
+immigration	153
+exploitation	152
+boarding school	152
+gay	152
+filmmakers	152
+social issues	151
+cover versions	150
+institutionalization	150
+conspiracy theories	149
+fatherhood	149
+lawyers	148
+small-town life	148
+eroticism	148
+film acting	148
+imprisonment	148
+1950s period	148
+concert film	148
+culture clash	147
+mad scientist	147
+voice acting	147
+choreography	146
+neo-noir	146
+drag	145
+gaming	145
+film history	145
+nazism	144
+combat	144
+assassination	144
+gangster	142
+love	142
+cannibalism	142
+angels	142
+1950s	142
+travel	142
+buddhism	141
+hiking	141
+touring	141
+rural life	141
+alternative rock	140
+soul	140
+police corruption	139
+music festival	139
+hitman	139
+1970s	139
+ghosts	139
+sex comedy	138
+con artist	137
+prison escape	137
+family legacy	137
+colonialism	137
+science fantasy	136
+space exploration	136
+abortion	136
+autobiography	135
+chess	135
+partition	135
+error: empty	135
+fame	134
+urban	134
+family conflict	134
+recording studio	133
+immigrant experience	132
+restaurant	132
+psychological horror	132
+guerrilla warfare	131
+moral ambiguity	131
+retail	131
+ethnography	131
+parent-child relationships	131
+concert	131
+everyday life	130
+skateboarding	129
+silent film	129
+historical period	128
+albums	128
+seafaring	128
+personal transformation	128
+discography	128
+holocaust	128
+stage adaptation	127
+pilgrimage	126
+world tour	126
+political history	126
+american civil war	126
+law enforcement	126
+interviews	126
+forest	125
+suicide	125
+gangsters	125
+horses	124
+social climbing	124
+1980s	124
+education	124
+surrealism	124
+classical music	124
+body horror	123
+rainforest	123
+comedy duo	123
+partisans	123
+archival footage	123
+domestic abuse	122
+celebrities	122
+genetic engineering	122
+political satire	122
+behind-the-scenes	121
+tournament	120
+puppetry	120
+oil industry	120
+recovery	120
+cold war	120
+film festivals	120
+civil war	120
+infidelity	120
+political scandal	119
+displacement	119
+character actor	119
+evil clown	119
+reunion	119
+class conflict	119
+performing arts	119
+civil unrest	118
+nuclear war	118
+photojournalism	118
+church	118
+relocation	118
+post-apocalypse	118
+aging	118
+captivity	117
+colonization	117
+criminal justice	117
+sitcom	117
+parody	117
+children's literature	116
+mental illness	116
+slice of life	115
+crowdfunding	115
+beach	115
+post-war	115
+nostalgia	115
+sibling relationships	114
+clergy	114
+independence movement	114
+scientists	114
+postwar	114
+biography	114
+spaghetti western	113
+mind control	113
+sketch comedy	113
+competition	113
+political activism	113
+elderly	112
+diaspora	112
+dragons	112
+sea voyage	112
+female empowerment	112
+factory	112
+time travel	112
+isolation	112
+identity	112
+insurgency	111
+child sexual abuse	111
+auto racing	111
+superpowers	111
+reboot	111
+societal collapse	111
+conspiracy	111
+soldiers	111
+mixed martial arts	110
+soap opera	110
+poisoning	110
+sea	110
+secret society	110
+series	110
+plants	110
+documentary filmmaking	109
+media manipulation	109
+television production	108
+child abduction	108
+political commentary	107
+flashbacks	107
+greed	107
+intergenerational relationships	107
+animals	107
+journalism	107
+revolution	107
+political controversy	106
+homosexuality	106
+box office success	106
+history	106
+teenagers	106
+rivalry	106
+mentorship	106
+redemption	106
+concentration camps	105
+juvenile delinquency	105
+legal/courtroom	105
+career retrospective	105
+photography	105
+economic hardship	104
+tradition	104
+playwright	104
+computers	104
+global warming	104
+samurai	104
+domestic violence	103
+celebrity cameos	103
+low-budget	103
+world cup	103
+music industry	103
+poetry	103
+sword fighting	102
+cybercrime	102
+bodybuilding	102
+football	102
+television series	102
+blues	101
+nature documentary	101
+native americans	101
+live performances	101
+forced marriage	101
+ladder match	101
+monarchy	100
+fairy tale	100
+orphans	99
+princess	99
+anniversaries	99
+jewish	99
+evolution	99
+public transportation	99
+boxing	99
+afterlife	98
+stage play	98
+graphic violence	98
+ancient egypt	98
+royalty	98
+lgbt	98
+alcoholism	98
+quest	98
+talent development	97
+cultural assimilation	97
+tour	97
+betrayal	97
+death	97
+sequels	96
+justice	96
+social reform	96
+young adult	96
+magical realism	96
+racing	96
+astronomy	96
+governess	96
+folklore	96
+aviation	96
+suspense	96
+rescue mission	95
+chase	95
+racism	95
+siblings	95
+rural	95
+black-and-white	94
+music charts	94
+cultural identity	94
+automobiles	94
+video games	94
+female protagonist	94
+metafiction	93
+rural setting	93
+rebellion	93
+apocalypse	93
+dystopia	93
+brothers	92
+bandits	92
+identity swap	92
+songwriting	92
+terminal illness	92
+hotel	91
+disappearance	91
+river	91
+stoner	91
+escape	91
+prostitution	91
+pay-per-view	91
+detectives	90
+sculpture	90
+silent films	90
+college	90
+regional cinema	90
+workplace	90
+political persecution	89
+totalitarianism	89
+publishing	89
+interrogation	89
+women in film	89
+sampling	89
+urban setting	89
+political intrigue	89
+world war i	89
+motherhood	89
+wildlife conservation	88
+environment	88
+singer-songwriter	88
+fashion	88
+buddy	87
+gangs	87
+heavy metal	87
+foster care	86
+childhood	86
+mob	86
+political violence	85
+fugitives	85
+curse	85
+youth culture	85
+indigenous culture	85
+community service	85
+disaster	85
+father-son relationship	85
+political repression	85
+caregiving	85
+controversy	85
+screwball comedy	84
+coaching	84
+social commentary	84
+community	84
+vigilante	84
+show business	84
+wildlife	84
+fandom	83
+expedition	83
+hard rock	83
+hometown	83
+interstellar war	83
+lgbtq	83
+refugees	83
+resistance	83
+radio	83
+spirituality	83
+concert tour	83
+directorial debut	82
+revival	82
+songs	82
+ecology	82
+fishing community	82
+medieval	82
+propaganda	82
+police procedural	82
+comic books	81
+high fantasy	81
+occult	81
+arctic	81
+tropical island	81
+talking animals	81
+investigative journalism	81
+screenwriting	81
+vampires	81
+soundtrack	81
+entrepreneurship	81
+studio recording	80
+orchestra	80
+paranoia	80
+family feud	80
+resistance movement	80
+future	80
+rural village	80
+remakes	80
+slasher	80
+youth	80
+resurrection	79
+american football	79
+alternate history	79
+inner-city	79
+environmentalism	79
+witchcraft	79
+marital conflict	78
+outsider	78
+reconstruction	78
+interracial relationship	78
+underground fighting	78
+christianity	78
+monsters	78
+treasure hunt	78
+nazis	78
+action-adventure	77
+mutants	77
+separation	77
+economics	77
+civil rights	77
+occupation	77
+small-town	77
+obsession	77
+robots	77
+human rights	77
+rescue	77
+film music	76
+human rights abuses	76
+intellectual disability	76
+missionaries	76
+radicalization	76
+solo performance	76
+shapeshifting	76
+africa	76
+war crimes	76
+bank robbery	75
+early 20th century	75
+invention	75
+anti-communism	75
+pandemic	75
+music videos	75
+jazz	75
+empire	74
+political	74
+podcasting	74
+historical fiction	74
+film preservation	73
+cults	73
+food	73
+natural disaster	73
+wine	73
+teen	73
+feudal japan	72
+gospel	72
+memory loss	72
+awards	72
+dark comedy	72
+manga adaptation	72
+independent film	72
+seduction	71
+cricket	71
+puppets	71
+free speech	71
+national security	71
+manhunt	71
+battle	71
+noir	71
+animals/talking animals	71
+capital punishment	70
+hacking	70
+hallucinations	70
+debut	70
+play adaptation	70
+box office	70
+feminism	70
+championships	70
+young adults	69
+internet	69
+runaway	69
+mental health	69
+opera	69
+mistaken identity	69
+reality tv	68
+visual effects	68
+alien invasion	68
+award-winning	68
+drug addiction	68
+epic	68
+character study	68
+political campaign	67
+contract killing	67
+rock music	67
+1930s	67
+self-discovery	67
+communism	67
+survivors	66
+wrongful imprisonment	66
+songwriter	66
+mockumentary	66
+frontier	66
+missing person	66
+hiv/aids	65
+web series	65
+presidency	65
+pets	65
+assassin	65
+historical epic	65
+male friendship	65
+modeling	65
+1990s	65
+social realism	65
+comeback	65
+shared universe	64
+haunting	64
+studio system	64
+race against time	64
+scandal	64
+streaming	64
+island	64
+demons	64
+award ceremonies	64
+zombies	64
+introspection	63
+transgender	63
+divorce	63
+race relations	63
+political corruption	63
+absurdism	62
+hip-hop	62
+modernization	62
+domestic life	62
+cancer	62
+gothic	62
+adoption	62
+nature	62
+stop-motion animation	61
+teacher-student relationship	61
+ex-convict	61
+genocide	61
+whodunit	60
+running	60
+academia	60
+mountains	60
+book adaptation	60
+television special	60
+anti-war	60
+pop	59
+bureaucracy	59
+classic cinema	59
+psychiatry	58
+lineup changes	58
+supervillains	58
+collaboration	58
+child protagonist	58
+vietnam war	58
+political conflict	58
+chart success	58
+hip hop	58
+class differences	58
+astronauts	57
+progressive metal	57
+guardian angel	57
+twins	57
+notable deaths	57
+technology	57
+folk music	57
+pregnancy	57
+trauma	57
+neo-western	56
+communal violence	56
+adolescence	56
+literature	56
+1920s	56
+working-class	56
+homelessness	56
+artificial intelligence	56
+prisoner of war	55
+record label	55
+gold rush	55
+couples	55
+duet	55
+electronic music	55
+autobiographical	55
+exile	55
+public domain	55
+basketball	55
+veterans	55
+wedding	55
+pirates	55
+private investigator	54
+extreme sports	54
+taxi driver	54
+musical theatre	54
+1940s	54
+protests	54
+art	54
+village	54
+studio anniversaries	54
+race	53
+generation gap	53
+1970s music	53
+diplomacy	53
+unemployment	53
+slapstick	53
+desert	53
+police investigation	53
+baseball	53
+small business	52
+biblical	52
+writing	52
+franchise	52
+wrongful conviction	52
+impersonation	52
+olympics	52
+pop music	52
+punk rock	52
+live concert	52
+avant-garde	51
+trilogy	51
+midlife crisis	51
+humanitarian aid	51
+maritime	51
+parenting	51
+outlaws	51
+international distribution	50
+civilian life	50
+islam	50
+long-running series	50
+drug trafficking	50
+live album	50
+mafia	50
+cult film	50
+loneliness	50
+wrestling	50
+philosophy	50
+memory	50
+television presenting	49
+country music	49
+human-animal bond	49
+theme park	49
+archival restoration	49
+conservation	49
+cinema	49
+painting	49
+fascism	49
+short films	49
+slavery	49
+deception	49
+reality television	49
+film releases	49
+foreign intervention	48
+gambling	48
+faith	48
+sexual assault	48
+massacre	48
+sacrifice	48
+sexual violence	48
+manga	48
+period	47
+illness	47
+entertainment industry	47
+mother-daughter relationship	47
+yakuza	47
+authoritarianism	47
+shipwreck	47
+women	47
+stand-up	47
+historic preservation	46
+letters	46
+teacher	46
+animated	46
+melodrama	46
+television adaptation	46
+protest	46
+gender roles	46
+government	46
+wilderness	46
+nuclear weapons	46
+social satire	46
+cinematography	45
+ambition	45
+dogs	45
+torture	45
+assassins	45
+blindness	45
+public health	45
+performance art	45
+classic literature	45
+existentialism	45
+sexuality	45
+deafness	44
+jungle	44
+elephants	44
+soviet	44
+actors	44
+retirement	44
+family relationships	44
+cultural clash	44
+film adaptation	44
+stalking	44
+tourism	44
+female friendship	44
+dark fantasy	44
+architecture	44
+ballet	44
+commercial success	44
+team	44
+bullying	44
+television hosting	43
+underworld	43
+clowns	43
+femme fatale	43
+dark humor	43
+rise to power	43
+atrocities	43
+film series	43
+sports entertainment	43
+substance abuse	43
+comics	43
+exploration	43
+adultery	43
+archaeology	43
+journey	43
+film criticism	43
+siege	43
+surveillance	43
+climate change	43
+invasion	43
+village life	43
+social class	43
+aristocracy	43
+middle class	42
+buddy cop	42
+rehabilitation	42
+memoir	42
+dictatorship	42
+music history	42
+19th century	42
+cultural heritage	42
+amnesia	42
+business	42
+naval warfare	42
+stunts	42
+music video	42
+inheritance	42
+paranormal	41
+doppelgängers	41
+skiing	41
+antichrist	41
+hospital	41
+buddy comedy	41
+circus	41
+reconciliation	41
+period setting	41
+medical	41
+bereavement	41
+ocean	41
+origin story	41
+haunted house	41
+antisemitism	41
+migration	41
+age-gap relationship	40
+depression	40
+whistleblowing	40
+amish	40
+community solidarity	40
+addiction	40
+children's television	40
+celebrity culture	40
+wuxia	40
+moral dilemma	40
+generational conflict	40
+relationship	40
+social change	40
+directing	40
+existential crisis	39
+intelligence agencies	39
+homecoming	39
+philanthropy	39
+murder investigation	39
+visual art	39
+mercenaries	39
+musicals	39
+transformation	39
+comic book adaptation	39
+parent-child relationship	38
+experimental	38
+singing	38
+underdog	38
+music production	38
+catholicism	38
+con artists	38
+murder mystery	38
+superhero	38
+working-class life	38
+fugitive	38
+sibling rivalry	38
+vigilante justice	38
+comedy album	37
+prehistoric	37
+film commentary	37
+arranged marriage	36
+ancient rome	36
+civil liberties	36
+soviet-era	35
+skepticism	35
+improvisation	34
+local politics	34
+1960s cinema	33
+jazz fusion	33
+psychic powers	32
+prequel	31
+backstage	31
+country	31
+primates	31
+drug cartels	31
+autism	30
+patriarchy	30
+boy band	30
+taoism	30
+family secrets	29
+mecha	29
+covid-19 pandemic	29
+neuroscience	29
+plantation	28
+retirement/comeback	27
+postal service	26
+execution	24
+pioneers	24
+science communication	24
+french revolution	24
+british	23
+etymology	21
+hosting	20
+classic hollywood	20
+3d	19
+mobile phones	19
+nativity	17
+new age	17
+shakespeare adaptation	12
+comedy of manners	8

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FindMovies - Login</title>
+    <link rel="icon" href="/static/theater-masks-blue.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="dashboard-bar">
+      <div class="dashboard-inner">
+        <div class="dashboard-left">
+          <a class="dashboard-home" href="/">Home</a>
+        </div>
+        <nav class="dashboard-items"></nav>
+        <div class="dashboard-right">
+          {% if current_user %}
+            <a class="dashboard-link dashboard-icon" href="/" aria-label="Search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.5-3.5"></path>
+              </svg>
+            </a>
+            <a class="dashboard-link" href="/premium">Premium</a>
+            <a class="dashboard-link" href="/favorites">Favorites</a>
+            <a class="dashboard-link" href="/settings">Settings</a>
+            <span class="dashboard-user">{{ current_user }}</span>
+            <a class="dashboard-link" href="/logout">Logout</a>
+          {% else %}
+            <a class="dashboard-link dashboard-icon" href="/" aria-label="Search">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.5-3.5"></path>
+              </svg>
+            </a>
+            <a class="dashboard-link" href="/premium">Premium</a>
+            <a class="dashboard-link" href="/settings">Settings</a>
+            <a class="dashboard-link" href="/login">Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+    <main class="page">
+      <section class="hero-card">
+        <h1>Account</h1>
+        <p>Sign in or create a new account to save your favorite picks.</p>
+      </section>
+
+      {% if error %}
+        <div class="notice error">{{ error }}</div>
+      {% endif %}
+      {% if message %}
+        <div class="notice success">{{ message }}</div>
+      {% endif %}
+      {% if current_user %}
+        <div class="notice success">Signed in as {{ current_user }}.</div>
+      {% endif %}
+
+      <div class="auth-grid">
+        <section class="auth-card">
+          <h2>Login</h2>
+          <form class="auth-form" method="post" action="/login">
+            <div class="field">
+              <label for="login-email">Email</label>
+              <input id="login-email" name="email" type="email" required />
+            </div>
+            <div class="field">
+              <label for="login-password">Password</label>
+              <input id="login-password" name="password" type="password" required />
+            </div>
+            <button type="submit" class="primary">Sign in</button>
+          </form>
+        </section>
+
+        <section class="auth-card">
+          <h2>Register</h2>
+          <form class="auth-form" method="post" action="/register">
+            <div class="field">
+              <label for="register-email">Email</label>
+              <input id="register-email" name="email" type="email" required />
+            </div>
+            <div class="field">
+              <label for="register-password">Password</label>
+              <input id="register-password" name="password" type="password" required />
+            </div>
+            <div class="field">
+              <label for="register-confirm">Confirm password</label>
+              <input id="register-confirm" name="confirm_password" type="password" required />
+            </div>
+            <button type="submit" class="primary">Create account</button>
+          </form>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

@@ -35,7 +35,7 @@ USER_DATABASE_URL = os.getenv("USER_DATABASE_URL")
 FAVORITES_DATABASE_URL = os.getenv("FAVORITES_DATABASE_URL")
 IS_PREMIUM_DATABASE_URL = os.getenv("IS_PREMIUM_DATABASE_URL")
 TIER_ONE_STRIPE_ID = os.getenv("TIER_ONE_STRIPE_ID", "")
-PREMIUM_PRICE_TEXT = os.getenv("PREMIUM_PRICE_TEXT", "$3.99/month")
+PREMIUM_PRICE_TEXT = os.getenv("PREMIUM_PRICE_TEXT", "$4.99/month")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
@@ -49,18 +49,123 @@ FREE_FAVORITES_LIMIT = 10
 ACTIVE_SUBSCRIPTION_STATUSES = {"active", "trialing"}
 
 LANG_NAMES = {
+    "af": "Afrikaans",
+    "am": "Amharic",
+    "ar": "Arabic",
+    "as": "Assamese",
+    "ay": "Aymara",
+    "az": "Azerbaijani",
+    "bg": "Bulgarian",
+    "bm": "Bambara",
+    "bn": "Bengali",
+    "bo": "Tibetan",
+    "bs": "Bosnian",
+    "ca": "Catalan",
+    "cn": "Cantonese",
+    "cs": "Czech",
+    "cy": "Welsh",
+    "da": "Danish",
+    "de": "German",
+    "dz": "Dzongkha",
+    "el": "Greek",
     "en": "English",
     "es": "Spanish",
+    "et": "Estonian",
+    "fa": "Persian",
+    "fi": "Finnish",
+    "fo": "Faroese",
     "fr": "French",
-    "de": "German",
-    "it": "Italian",
-    "ja": "Japanese",
-    "ko": "Korean",
-    "zh": "Chinese",
-    "pt": "Portuguese",
-    "ru": "Russian",
+    "fy": "Western Frisian",
+    "ga": "Irish",
+    "gl": "Galician",
+    "gu": "Gujarati",
+    "he": "Hebrew",
     "hi": "Hindi",
+    "hr": "Croatian",
+    "ht": "Haitian Creole",
+    "hu": "Hungarian",
+    "hy": "Armenian",
+    "id": "Indonesian",
+    "ig": "Igbo",
+    "is": "Icelandic",
+    "it": "Italian",
+    "iu": "Inuktitut",
+    "ja": "Japanese",
+    "jv": "Javanese",
+    "ka": "Georgian",
+    "kk": "Kazakh",
+    "km": "Khmer",
+    "kn": "Kannada",
+    "ko": "Korean",
+    "ks": "Kashmiri",
+    "ku": "Kurdish",
+    "ky": "Kyrgyz",
+    "ln": "Lingala",
+    "lt": "Lithuanian",
+    "lv": "Latvian",
+    "mk": "Macedonian",
+    "ml": "Malayalam",
+    "mn": "Mongolian",
+    "mo": "Moldovan",
+    "mr": "Marathi",
+    "ms": "Malay",
+    "mt": "Maltese",
+    "my": "Burmese",
+    "nb": "Norwegian Bokmal",
+    "ne": "Nepali",
+    "nl": "Dutch",
+    "no": "Norwegian",
+    "or": "Odia",
+    "pa": "Punjabi",
+    "pl": "Polish",
+    "ps": "Pashto",
+    "pt": "Portuguese",
+    "qu": "Quechua",
+    "ro": "Romanian",
+    "ru": "Russian",
+    "sa": "Sanskrit",
+    "se": "Northern Sami",
+    "sh": "Serbo-Croatian",
+    "si": "Sinhala",
+    "sk": "Slovak",
+    "sl": "Slovenian",
+    "sn": "Shona",
+    "sq": "Albanian",
+    "sr": "Serbian",
+    "sv": "Swedish",
+    "sw": "Swahili",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "th": "Thai",
+    "tl": "Tagalog",
+    "tn": "Tswana",
+    "tr": "Turkish",
+    "uk": "Ukrainian",
+    "ur": "Urdu",
+    "uz": "Uzbek",
+    "vi": "Vietnamese",
+    "wo": "Wolof",
+    "xx": "Unknown",
+    "yi": "Yiddish",
+    "zh": "Chinese",
+    "zu": "Zulu",
 }
+
+COMMON_LANG_ORDER = [
+    "en",
+    "zh",
+    "cn",
+    "es",
+    "hi",
+    "ar",
+    "pt",
+    "ru",
+    "ja",
+    "de",
+    "fr",
+    "ko",
+    "it",
+]
 
 SAMPLE_LANGS = ["en", "es", "fr", "ja"]
 SAMPLE_FEATURED = [
@@ -282,12 +387,25 @@ SAMPLE_RESULTS = [
 
 
 def format_language(code: str) -> str:
-    return f"{LANG_NAMES.get(code, code)} ({code})"
+    return LANG_NAMES.get(code, code)
+
+
+def order_languages(languages: List[str]) -> List[str]:
+    seen = set()
+    ordered: List[str] = []
+    for code in COMMON_LANG_ORDER:
+        if code in languages and code not in seen:
+            ordered.append(code)
+            seen.add(code)
+    remaining = [code for code in languages if code not in seen]
+    remaining.sort(key=lambda code: format_language(code).lower())
+    ordered.extend(remaining)
+    return ordered
 
 
 def build_lang_options(languages: List[str]) -> List[Dict[str, str]]:
     options = [{"value": "Any", "label": "Any"}]
-    for code in languages:
+    for code in order_languages(languages):
         options.append({"value": code, "label": format_language(code)})
     return options
 

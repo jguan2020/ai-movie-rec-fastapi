@@ -13,6 +13,7 @@ from typing import List, Dict, Any, Optional
 
 import numpy as np
 import psycopg2
+import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -22,7 +23,7 @@ from openai import OpenAI
 from psycopg2.extras import RealDictCursor
 
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(dotenv_path=BASE_DIR.parent / ".env")
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 
@@ -42,6 +43,7 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-small")
 LLM_API_KEY = os.getenv("LLM_API_KEY")
 CANONICAL_PATH = os.getenv("CANONICAL_PATH", str(BASE_DIR / "canonical_top_k1000.txt"))
+BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "")
 IMG_BASE = "https://image.tmdb.org/t/p/w342"
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 JWT_TTL_SECONDS = int(os.getenv("JWT_TTL_SECONDS", "604800"))
@@ -410,6 +412,34 @@ def build_lang_options(languages: List[str]) -> List[Dict[str, str]]:
     return options
 
 
+def get_session_token(request: Request) -> str:
+    return request.cookies.get("session", "")
+
+
+def backend_request(
+    method: str,
+    path: str,
+    token: Optional[str] = None,
+    json_body: Optional[Dict[str, Any]] = None,
+    data: Optional[bytes] = None,
+    headers: Optional[Dict[str, str]] = None,
+) -> requests.Response:
+    if not BACKEND_BASE_URL:
+        raise RuntimeError("Backend API is not configured.")
+    url = f"{BACKEND_BASE_URL}{path}"
+    req_headers = dict(headers or {})
+    if token:
+        req_headers["Authorization"] = f"Bearer {token}"
+    return requests.request(
+        method,
+        url,
+        json=json_body,
+        data=data,
+        headers=req_headers,
+        timeout=10,
+    )
+
+
 def get_conn():
     if not MOVIE_DATABASE_URL:
         raise RuntimeError("Movie database is not configured.")
@@ -500,19 +530,25 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
 
 
 def get_current_user(request: Request) -> Optional[str]:
-    if not JWT_SECRET:
-        return None
-    token = request.cookies.get("session", "")
+    token = get_session_token(request)
     if not token:
         return None
-    payload = decode_token(token)
-    if not payload:
-        return None
-    return payload.get("sub")
+    if BACKEND_BASE_URL:
+        try:
+            resp = backend_request("GET", "/auth/me", token=token)
+            if resp.ok:
+                data = resp.json()
+                return data.get("email")
+        except Exception:
+            pass
+    if JWT_SECRET:
+        payload = decode_token(token)
+        if payload and payload.get("sub"):
+            return payload.get("sub")
+    return None
 
 
-def issue_session_cookie(response: Response, email: str, request: Request) -> None:
-    token = create_token(email)
+def issue_session_cookie(response: Response, token: str, request: Request) -> None:
     response.set_cookie(
         "session",
         token,
@@ -598,9 +634,21 @@ def is_premium_active(record: Optional[Dict[str, Any]]) -> bool:
     return False
 
 
-def get_user_is_premium(email: str) -> bool:
-    record = get_premium_record(email)
-    return is_premium_active(record)
+def fetch_premium_status(token: str) -> Optional[Dict[str, Any]]:
+    if not token or not BACKEND_BASE_URL:
+        return None
+    try:
+        resp = backend_request("GET", "/premium/status", token=token)
+        if resp.ok:
+            return resp.json()
+    except Exception:
+        return None
+    return None
+
+
+def get_user_is_premium(token: str) -> bool:
+    status = fetch_premium_status(token)
+    return bool(status and status.get("is_premium"))
 
 
 def set_user_premium(
@@ -965,6 +1013,55 @@ def prepare_card(
     }
 
 
+def prepare_backend_card(
+    card: Dict[str, Any],
+    favorite_keys: Optional[set],
+    pill_limit: int,
+) -> Dict[str, Any]:
+    title_text = card.get("title", "") or ""
+    release_date = str(card.get("release_date") or "")
+    favorite_key = build_favorite_key(title_text, release_date)
+    is_favorite = favorite_keys is not None and favorite_key in favorite_keys
+    keywords = card.get("keywords") or []
+    return {
+        **card,
+        "title": title_text,
+        "release_date": release_date,
+        "favorite_key": favorite_key,
+        "is_favorite": is_favorite,
+        "pills": keywords[:pill_limit],
+        "poster_path": card.get("poster_path") or "",
+        "genres": card.get("genres") or "",
+    }
+
+
+def group_backend_results(
+    results: List[Dict[str, Any]],
+    chosen_tags: List[str],
+    favorite_keys: Optional[set] = None,
+) -> List[Dict[str, Any]]:
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    tag_count = len(chosen_tags)
+    for card in results:
+        label = match_label(int(card.get("match_count") or 0), tag_count)
+        grouped.setdefault(label, []).append(prepare_backend_card(card, favorite_keys, pill_limit=10))
+
+    label_order = [
+        "Very High Match",
+        "High Match",
+        "Moderate Match",
+        "Low Match",
+        "Very Low Match",
+        "No Match",
+    ]
+    grouped_list = []
+    for label in label_order:
+        items = grouped.get(label, [])
+        if items:
+            grouped_list.append({"label": label, "items": items, "count": len(items)})
+    return grouped_list
+
+
 def group_results(
     results: List[Dict[str, Any]],
     chosen_tags: List[str],
@@ -1000,18 +1097,22 @@ def render_page(
     language_value: Optional[str],
     has_search: bool,
 ) -> HTMLResponse:
+    token = get_session_token(request)
     current_user = get_current_user(request)
     is_premium = False
     notice = None
     use_sample = False
     favorite_keys: set = set()
-    favorites_enabled = bool(FAVORITES_DATABASE_URL)
+    favorites_enabled = bool(BACKEND_BASE_URL)
 
-    if current_user and favorites_enabled:
+    if token and favorites_enabled:
         try:
-            favorites_rows = get_favorites_for_user(current_user)
+            resp = backend_request("GET", "/favorites", token=token)
+            if not resp.ok:
+                raise RuntimeError("favorites_unavailable")
+            favorites_rows = resp.json()
             favorite_keys = {
-                build_favorite_key(row.get("movie_title", ""), row.get("release_date", ""))
+                build_favorite_key(row.get("title", ""), row.get("release_date", ""))
                 for row in favorites_rows
             }
         except Exception:
@@ -1019,17 +1120,19 @@ def render_page(
             if not notice:
                 notice = "Favorites are unavailable right now."
 
-    if current_user:
-        is_premium = get_user_is_premium(current_user)
-
-    if not MOVIE_DATABASE_URL:
+    if not BACKEND_BASE_URL:
         use_sample = True
         notice = "Search is unavailable right now. Showing sample content."
         languages = SAMPLE_LANGS
     else:
         try:
-            languages = load_languages()
-        except Exception as exc:
+            resp = backend_request("GET", "/languages")
+            if not resp.ok:
+                raise RuntimeError("languages_unavailable")
+            languages = [row.get("code") for row in resp.json() if row.get("code")]
+            if not languages:
+                languages = SAMPLE_LANGS
+        except Exception:
             use_sample = True
             notice = "Search is unavailable right now. Showing sample content."
             languages = SAMPLE_LANGS
@@ -1044,37 +1147,74 @@ def render_page(
         if not any(opt["value"] == selected_language for opt in lang_options):
             selected_language = default_language
 
-    query_language = None if selected_language == "Any" else selected_language
-
     chosen_tags: List[str] = []
     featured: List[Dict[str, Any]] = []
     grouped_results: List[Dict[str, Any]] = []
     results_count = 0
-    results_limit = 50 if is_premium else 10
 
     if has_search:
-        if overview_query:
-            chosen_tags = map_query_to_tags(overview_query)
-        elif use_sample:
-            chosen_tags = ["dystopian", "robot", "war"]
-
         if use_sample:
-            results = SAMPLE_RESULTS[:results_limit]
+            if overview_query:
+                chosen_tags = [t.strip() for t in overview_query.split(",") if t.strip()]
+            else:
+                chosen_tags = ["dystopian", "robot", "war"]
+            results = SAMPLE_RESULTS[:10]
+            grouped_results = group_results(results, chosen_tags, favorite_keys=favorite_keys)
+            results_count = len(results)
         else:
             try:
-                results = fetch_movies(query_language, chosen_tags, limit=results_limit)
-            except Exception as exc:
+                resp = backend_request(
+                    "POST",
+                    "/search",
+                    token=token,
+                    json_body={
+                        "overview_query": overview_query or "",
+                        "language": selected_language,
+                    },
+                )
+                if not resp.ok:
+                    raise RuntimeError("search_unavailable")
+                data = resp.json()
+                is_premium = bool(data.get("is_premium"))
+                chosen_tags = data.get("matched_tags") or []
+                results = data.get("results") or []
+                grouped_results = group_backend_results(results, chosen_tags, favorite_keys=favorite_keys)
+                results_count = int(data.get("results_count") or len(results))
+            except Exception:
                 notice = "Search is unavailable right now. Showing sample content."
-                results = SAMPLE_RESULTS[:results_limit]
-
-        grouped_results = group_results(results, chosen_tags, favorite_keys=favorite_keys)
-        results_count = len(results)
+                if overview_query:
+                    chosen_tags = [t.strip() for t in overview_query.split(",") if t.strip()]
+                else:
+                    chosen_tags = ["dystopian", "robot", "war"]
+                results = SAMPLE_RESULTS[:10]
+                grouped_results = group_results(results, chosen_tags, favorite_keys=favorite_keys)
+                results_count = len(results)
     else:
-        featured_rows = SAMPLE_FEATURED
-
-        featured = [
-            prepare_card(row, [], pill_limit=5, favorite_keys=favorite_keys) for row in featured_rows
-        ]
+        if use_sample:
+            featured_rows = SAMPLE_FEATURED
+            featured = [
+                prepare_card(row, [], pill_limit=5, favorite_keys=favorite_keys)
+                for row in featured_rows
+            ]
+        else:
+            try:
+                resp = backend_request("GET", "/featured", token=token)
+                if not resp.ok:
+                    raise RuntimeError("featured_unavailable")
+                data = resp.json()
+                is_premium = bool(data.get("is_premium"))
+                featured_rows = data.get("featured") or []
+                featured = [
+                    prepare_backend_card(row, favorite_keys, pill_limit=5)
+                    for row in featured_rows
+                ]
+            except Exception:
+                notice = "Search is unavailable right now. Showing sample content."
+                featured_rows = SAMPLE_FEATURED
+                featured = [
+                    prepare_card(row, [], pill_limit=5, favorite_keys=favorite_keys)
+                    for row in featured_rows
+                ]
 
     return templates.TemplateResponse(
         "index.html",
@@ -1098,7 +1238,8 @@ def render_page(
 
 def render_login(request: Request, message: str = "", error: str = "") -> HTMLResponse:
     current_user = get_current_user(request)
-    is_premium = get_user_is_premium(current_user) if current_user else False
+    token = get_session_token(request)
+    is_premium = get_user_is_premium(token) if token else False
     return templates.TemplateResponse(
         "login.html",
         {
@@ -1112,11 +1253,11 @@ def render_login(request: Request, message: str = "", error: str = "") -> HTMLRe
 
 
 def favorite_row_to_card(row: Dict[str, Any], favorite_keys: set) -> Dict[str, Any]:
-    title = row.get("movie_title", "") or ""
+    title = row.get("movie_title") or row.get("title") or ""
     release_date = str(row.get("release_date") or "")
     genres = row.get("genres") or ""
     poster_path = row.get("poster_path") or ""
-    poster_url = f"{IMG_BASE}{poster_path}" if poster_path else None
+    poster_url = row.get("poster_url") or (f"{IMG_BASE}{poster_path}" if poster_path else None)
     favorite_key = build_favorite_key(title, release_date)
     return {
         "title": title,
@@ -1141,7 +1282,8 @@ def render_favorites_page(
     error: str = "",
 ) -> HTMLResponse:
     current_user = get_current_user(request)
-    is_premium = get_user_is_premium(current_user) if current_user else False
+    token = get_session_token(request)
+    is_premium = get_user_is_premium(token) if token else False
     return templates.TemplateResponse(
         "favorites.html",
         {
@@ -1149,7 +1291,7 @@ def render_favorites_page(
             "favorites": favorites,
             "error": error,
             "current_user": current_user,
-            "favorites_enabled": bool(FAVORITES_DATABASE_URL),
+            "favorites_enabled": bool(BACKEND_BASE_URL),
             "is_premium": is_premium,
         },
     )
@@ -1166,15 +1308,17 @@ def render_settings(
     current_user_override: Optional[str] = None,
 ) -> HTMLResponse:
     current_user = current_user_override or get_current_user(request)
-    premium_record = get_premium_record(current_user) if current_user else None
-    is_premium = is_premium_active(premium_record)
-    subscription_id = premium_record.get("stripe_subscription_id") if premium_record else None
-    cancel_at_period_end = bool(premium_record.get("cancel_at_period_end")) if premium_record else False
-    current_period_end = premium_record.get("current_period_end") if premium_record else None
+    token = get_session_token(request)
+    premium_status = fetch_premium_status(token) if token else None
+    is_premium = bool(premium_status and premium_status.get("is_premium"))
+    subscription_id = None
+    cancel_at_period_end = bool(premium_status and premium_status.get("cancel_at_period_end"))
+    current_period_end = premium_status.get("current_period_end") if premium_status else None
     period_end_text = ""
     if current_period_end:
         try:
-            period_end_text = current_period_end.astimezone(timezone.utc).strftime("%b %d, %Y")
+            period_end = datetime.fromisoformat(current_period_end)
+            period_end_text = period_end.astimezone(timezone.utc).strftime("%b %d, %Y")
         except Exception:
             period_end_text = str(current_period_end)
     return templates.TemplateResponse(
@@ -1198,14 +1342,16 @@ def render_settings(
 
 def render_premium_page(request: Request, message: str = "", error: str = "") -> HTMLResponse:
     current_user = get_current_user(request)
-    is_premium = get_user_is_premium(current_user) if current_user else False
-    premium_record = get_premium_record(current_user) if current_user else None
-    cancel_at_period_end = premium_record.get("cancel_at_period_end") if premium_record else False
-    current_period_end = premium_record.get("current_period_end") if premium_record else None
+    token = get_session_token(request)
+    premium_status = fetch_premium_status(token) if token else None
+    is_premium = bool(premium_status and premium_status.get("is_premium"))
+    cancel_at_period_end = bool(premium_status and premium_status.get("cancel_at_period_end"))
+    current_period_end = premium_status.get("current_period_end") if premium_status else None
     period_end_text = ""
     if current_period_end:
         try:
-            period_end_text = current_period_end.astimezone(timezone.utc).strftime("%b %d, %Y")
+            period_end = datetime.fromisoformat(current_period_end)
+            period_end_text = period_end.astimezone(timezone.utc).strftime("%b %d, %Y")
         except Exception:
             period_end_text = str(current_period_end)
     return templates.TemplateResponse(
@@ -1249,23 +1395,32 @@ def login_submit(
     email: str = Form(""),
     password: str = Form(""),
 ):
-    if not USER_DATABASE_URL:
-        return render_login(request, error="Login is unavailable right now.")
-    if not JWT_SECRET:
+    if not BACKEND_BASE_URL:
         return render_login(request, error="Login is unavailable right now.")
     if not email or not password:
         return render_login(request, error="Please enter your email and password.")
     email_clean = normalize_email(email)
     try:
-        user = get_user_by_email(email_clean)
+        resp = backend_request(
+            "POST",
+            "/auth/login",
+            json_body={"email": email_clean, "password": password},
+        )
+        data = resp.json() if resp.content else {}
     except Exception:
         return render_login(request, error="Login is unavailable. Please try again shortly.")
-    if not user:
-        return render_login(request, error="Invalid email or incorrect password.")
-    if not verify_password(password, user.get("password_hash", "")):
-        return render_login(request, error="Invalid email or incorrect password.")
+    if not resp.ok:
+        detail = data.get("detail") if isinstance(data, dict) else None
+        if detail == "invalid_credentials":
+            return render_login(request, error="Invalid email or incorrect password.")
+        if detail == "missing_credentials":
+            return render_login(request, error="Please enter your email and password.")
+        return render_login(request, error="Login is unavailable. Please try again shortly.")
+    token = data.get("token") if isinstance(data, dict) else None
+    if not token:
+        return render_login(request, error="Login is unavailable. Please try again shortly.")
     response = RedirectResponse(url="/", status_code=303)
-    issue_session_cookie(response, email_clean, request)
+    issue_session_cookie(response, token, request)
     return response
 
 
@@ -1276,9 +1431,7 @@ def register_submit(
     password: str = Form(""),
     confirm_password: str = Form(""),
 ):
-    if not USER_DATABASE_URL:
-        return render_login(request, error="Registration is unavailable right now.")
-    if not JWT_SECRET:
+    if not BACKEND_BASE_URL:
         return render_login(request, error="Registration is unavailable right now.")
     if not email or not password:
         return render_login(request, error="Please fill in email and password.")
@@ -1286,13 +1439,32 @@ def register_submit(
         return render_login(request, error="Passwords do not match.")
     email_clean = normalize_email(email)
     try:
-        created = create_user(email_clean, password)
+        resp = backend_request(
+            "POST",
+            "/auth/register",
+            json_body={
+                "email": email_clean,
+                "password": password,
+                "confirm_password": confirm_password,
+            },
+        )
+        data = resp.json() if resp.content else {}
     except Exception:
         return render_login(request, error="Registration is unavailable. Please try again shortly.")
-    if not created:
-        return render_login(request, error="Registration failed. Please try again.")
+    if not resp.ok:
+        detail = data.get("detail") if isinstance(data, dict) else None
+        if detail == "missing_credentials":
+            return render_login(request, error="Please fill in email and password.")
+        if detail == "passwords_mismatch":
+            return render_login(request, error="Passwords do not match.")
+        if detail == "registration_failed":
+            return render_login(request, error="Registration failed. Please try again.")
+        return render_login(request, error="Registration is unavailable. Please try again shortly.")
+    token = data.get("token") if isinstance(data, dict) else None
+    if not token:
+        return render_login(request, error="Registration is unavailable. Please try again shortly.")
     response = render_login(request, message="Account created.")
-    issue_session_cookie(response, email_clean, request)
+    issue_session_cookie(response, token, request)
     return response
 
 
@@ -1301,12 +1473,16 @@ def favorites_page(request: Request):
     current_user = get_current_user(request)
     if not current_user:
         return RedirectResponse(url="/login", status_code=303)
-    if not FAVORITES_DATABASE_URL:
+    token = get_session_token(request)
+    if not BACKEND_BASE_URL or not token:
         return render_favorites_page(request, [], error="Favorites are unavailable right now.")
     try:
-        rows = get_favorites_for_user(current_user)
+        resp = backend_request("GET", "/favorites", token=token)
+        if not resp.ok:
+            raise RuntimeError("favorites_unavailable")
+        rows = resp.json()
         favorite_keys = {
-            build_favorite_key(row.get("movie_title", ""), row.get("release_date", ""))
+            build_favorite_key(row.get("title", ""), row.get("release_date", ""))
             for row in rows
         }
         cards = [favorite_row_to_card(row, favorite_keys) for row in rows]
@@ -1332,41 +1508,61 @@ def settings_change_email(
     current_user = get_current_user(request)
     if not current_user:
         return RedirectResponse(url="/login", status_code=303)
+    token = get_session_token(request)
+    if not BACKEND_BASE_URL or not token:
+        return render_settings(request, email_error="Email updates are unavailable right now.")
     email_clean = normalize_email(new_email)
     if not email_clean:
         return render_settings(request, email_error="Enter a valid email.")
     if email_clean == current_user:
         return render_settings(request, email_error="That is already your email.")
-    if user_email_exists(email_clean):
-        return render_settings(request, email_error="That email is already in use.")
-
-    user = get_user_by_email(current_user)
-    if not user or not verify_password(current_password, user.get("password_hash", "")):
+    if not current_password:
         return render_settings(request, email_error="Current password is incorrect.")
 
-    premium_conflict = get_premium_record(email_clean)
-    if premium_conflict:
-        return render_settings(request, email_error="That email already has a subscription record.")
-
-    updated = update_user_email(current_user, email_clean)
-    if not updated:
+    try:
+        resp = backend_request(
+            "POST",
+            "/account/email",
+            token=token,
+            json_body={"new_email": email_clean, "current_password": current_password},
+        )
+        data = resp.json() if resp.content else {}
+    except Exception:
         return render_settings(request, email_error="Could not update email. Try again.")
 
-    warning = ""
-    try:
-        update_favorites_email(current_user, email_clean)
-    except Exception:
-        warning = "Email updated, but favorites could not be updated."
-    try:
-        update_premium_email(current_user, email_clean)
-    except Exception:
-        warning = "Email updated, but subscription data could not be updated."
+    if not resp.ok:
+        detail = data.get("detail") if isinstance(data, dict) else None
+        if detail == "invalid_credentials":
+            return render_settings(request, email_error="Current password is incorrect.")
+        if detail == "update_failed":
+            return render_settings(request, email_error="Could not update email. Try again.")
+        return render_settings(request, email_error="Could not update email. Try again.")
 
     message = "Email updated."
-    if warning:
-        message = f"{message} {warning}"
-    response = render_settings(request, email_message=message, current_user_override=email_clean)
-    issue_session_cookie(response, email_clean, request)
+    new_token = None
+    try:
+        login_resp = backend_request(
+            "POST",
+            "/auth/login",
+            json_body={"email": email_clean, "password": current_password},
+        )
+        login_data = login_resp.json() if login_resp.content else {}
+        if login_resp.ok:
+            new_token = login_data.get("token")
+    except Exception:
+        new_token = None
+
+    if new_token:
+        response = render_settings(request, email_message=message, current_user_override=email_clean)
+        issue_session_cookie(response, new_token, request)
+        return response
+
+    response = render_settings(
+        request,
+        email_message="Email updated. Please log in again.",
+        current_user_override=email_clean,
+    )
+    response.delete_cookie("session", path="/")
     return response
 
 
@@ -1380,17 +1576,35 @@ def settings_reset_password(
     current_user = get_current_user(request)
     if not current_user:
         return RedirectResponse(url="/login", status_code=303)
+    token = get_session_token(request)
+    if not BACKEND_BASE_URL or not token:
+        return render_settings(request, password_error="Password updates are unavailable right now.")
     if not new_password or not confirm_password:
         return render_settings(request, password_error="Enter and confirm your new password.")
     if new_password != confirm_password:
         return render_settings(request, password_error="Passwords do not match.")
-
-    user = get_user_by_email(current_user)
-    if not user or not verify_password(current_password, user.get("password_hash", "")):
-        return render_settings(request, password_error="Current password is incorrect.")
-
-    updated = update_user_password(current_user, new_password)
-    if not updated:
+    try:
+        resp = backend_request(
+            "POST",
+            "/account/password",
+            token=token,
+            json_body={
+                "current_password": current_password,
+                "new_password": new_password,
+                "confirm_password": confirm_password,
+            },
+        )
+        data = resp.json() if resp.content else {}
+    except Exception:
+        return render_settings(request, password_error="Could not update password.")
+    if not resp.ok:
+        detail = data.get("detail") if isinstance(data, dict) else None
+        if detail == "invalid_credentials":
+            return render_settings(request, password_error="Current password is incorrect.")
+        if detail == "passwords_mismatch":
+            return render_settings(request, password_error="Passwords do not match.")
+        if detail == "update_failed":
+            return render_settings(request, password_error="Could not update password.")
         return render_settings(request, password_error="Could not update password.")
     return render_settings(request, password_message="Password updated.")
 
@@ -1400,41 +1614,25 @@ def settings_cancel_subscription(request: Request):
     current_user = get_current_user(request)
     if not current_user:
         return RedirectResponse(url="/login", status_code=303)
-    record = get_premium_record(current_user)
-    if not is_premium_active(record):
-        return render_settings(request, subscription_error="No active subscription.")
-
-    subscription_id = record.get("stripe_subscription_id") if record else None
-    if not subscription_id:
-        set_user_premium(current_user, False, clear_subscription=True)
-        return render_settings(request, subscription_message="Subscription canceled.")
-
-    if not STRIPE_SECRET_KEY:
+    token = get_session_token(request)
+    if not BACKEND_BASE_URL or not token:
         return render_settings(request, subscription_error="Subscription management is unavailable right now.")
-    if STRIPE_SECRET_KEY:
-        try:
-            import stripe
-        except Exception:
-            return render_settings(request, subscription_error="Subscription management is unavailable right now.")
-        stripe.api_key = STRIPE_SECRET_KEY
-        try:
-            subscription = stripe.Subscription.modify(
-                subscription_id,
-                cancel_at_period_end=True,
+    try:
+        resp = backend_request("POST", "/subscription/cancel", token=token)
+        data = resp.json() if resp.content else {}
+    except Exception:
+        return render_settings(request, subscription_error="Subscription management is unavailable right now.")
+    if not resp.ok:
+        detail = data.get("detail") if isinstance(data, dict) else None
+        if detail == "no_active_subscription":
+            return render_settings(request, subscription_error="No active subscription.")
+        if detail == "stripe_unavailable":
+            return render_settings(
+                request, subscription_error="Subscription management is unavailable right now."
             )
-        except Exception:
+        if detail == "cancel_failed":
             return render_settings(request, subscription_error="Failed to cancel subscription.")
-
-    period_end = None
-    if subscription and subscription.get("current_period_end"):
-        period_end = datetime.fromtimestamp(int(subscription["current_period_end"]), tz=timezone.utc)
-    set_user_premium(
-        current_user,
-        True,
-        subscription_id=subscription_id,
-        period_end=period_end,
-        cancel_at_period_end=True,
-    )
+        return render_settings(request, subscription_error="Failed to cancel subscription.")
     return render_settings(request, subscription_message="Cancellation scheduled.")
 
 
@@ -1463,32 +1661,30 @@ def subscribe(request: Request):
     current_user = get_current_user(request)
     if not current_user:
         return JSONResponse({"error": "not_authenticated"}, status_code=401)
-    if not STRIPE_SECRET_KEY or not TIER_ONE_STRIPE_ID:
+    token = get_session_token(request)
+    if not BACKEND_BASE_URL or not token:
         return JSONResponse({"error": "stripe_config"}, status_code=400)
-    try:
-        import stripe
-    except Exception:
-        return JSONResponse({"error": "stripe_import"}, status_code=500)
-
-    stripe.api_key = STRIPE_SECRET_KEY
     base_url = str(request.base_url).rstrip("/")
     return_url = f"{base_url}/premium?success=1&session_id={{CHECKOUT_SESSION_ID}}"
     try:
-        session = stripe.checkout.Session.create(
-            mode="subscription",
-            ui_mode="embedded",
-            line_items=[{"price": TIER_ONE_STRIPE_ID, "quantity": 1}],
-            return_url=return_url,
-            customer_email=current_user,
-            subscription_data={
-                "metadata": {"user_email": current_user},
-            },
-            metadata={"user_email": current_user},
+        resp = backend_request(
+            "POST",
+            "/subscribe",
+            token=token,
+            json_body={"return_url": return_url},
         )
+        data = resp.json() if resp.content else {}
     except Exception:
         return JSONResponse({"error": "stripe_session"}, status_code=500)
-
-    client_secret = session.client_secret if session else None
+    if not resp.ok:
+        detail = data.get("detail") if isinstance(data, dict) else None
+        error_code = "stripe_session"
+        if detail == "stripe_unavailable":
+            error_code = "stripe_config"
+        if detail == "stripe_session_failed":
+            error_code = "stripe_session"
+        return JSONResponse({"error": error_code}, status_code=resp.status_code)
+    client_secret = data.get("clientSecret") if isinstance(data, dict) else None
     if not client_secret:
         return JSONResponse({"error": "stripe_session"}, status_code=500)
     return JSONResponse({"clientSecret": client_secret})
@@ -1496,84 +1692,21 @@ def subscribe(request: Request):
 
 @app.post("/stripe/webhook")
 async def stripe_webhook(request: Request):
-    if not STRIPE_WEBHOOK_SECRET:
+    if not BACKEND_BASE_URL:
         return JSONResponse({"error": "webhook_not_configured"}, status_code=400)
-    try:
-        import stripe
-    except Exception:
-        return JSONResponse({"error": "stripe_not_installed"}, status_code=500)
-
     payload = await request.body()
     signature = request.headers.get("stripe-signature", "")
     try:
-        event = stripe.Webhook.construct_event(payload, signature, STRIPE_WEBHOOK_SECRET)
+        resp = backend_request(
+            "POST",
+            "/stripe/webhook",
+            data=payload,
+            headers={"stripe-signature": signature},
+        )
+        data = resp.json() if resp.content else {"status": "ok"}
+        return JSONResponse(data, status_code=resp.status_code)
     except Exception:
-        return JSONResponse({"error": "invalid_signature"}, status_code=400)
-
-    if event.get("type") == "checkout.session.completed":
-        session = event.get("data", {}).get("object", {})
-        email = session.get("customer_email") or session.get("metadata", {}).get("user_email")
-        if email:
-            subscription_id = session.get("subscription")
-            period_end = None
-            cancel_at_period_end = None
-            if subscription_id:
-                try:
-                    subscription = stripe.Subscription.retrieve(subscription_id)
-                    if subscription.get("current_period_end"):
-                        period_end = datetime.fromtimestamp(
-                            int(subscription["current_period_end"]), tz=timezone.utc
-                        )
-                    cancel_at_period_end = subscription.get("cancel_at_period_end")
-                except Exception:
-                    subscription = None
-            set_user_premium(
-                email,
-                True,
-                subscription_id=subscription_id,
-                period_end=period_end,
-                cancel_at_period_end=cancel_at_period_end,
-            )
-
-    if event.get("type") in {"customer.subscription.updated", "customer.subscription.deleted"}:
-        subscription = event.get("data", {}).get("object", {})
-        subscription_id = subscription.get("id")
-        status = subscription.get("status")
-        cancel_at_period_end = subscription.get("cancel_at_period_end")
-        period_end = None
-        if subscription.get("current_period_end"):
-            period_end = datetime.fromtimestamp(int(subscription["current_period_end"]), tz=timezone.utc)
-
-        is_active = status in ACTIVE_SUBSCRIPTION_STATUSES
-        if subscription_id:
-            if event.get("type") == "customer.subscription.deleted":
-                update_premium_by_subscription_id(
-                    subscription_id,
-                    False,
-                    period_end=None,
-                    cancel_at_period_end=False,
-                    clear_subscription=True,
-                )
-            else:
-                update_premium_by_subscription_id(
-                    subscription_id,
-                    is_active,
-                    period_end=period_end,
-                    cancel_at_period_end=cancel_at_period_end,
-                )
-        else:
-            email = subscription.get("metadata", {}).get("user_email")
-            if email:
-                set_user_premium(
-                    email,
-                    is_active,
-                    subscription_id=subscription_id,
-                    period_end=period_end,
-                    cancel_at_period_end=cancel_at_period_end,
-                    clear_subscription=not is_active,
-                )
-
-    return JSONResponse({"status": "ok"})
+        return JSONResponse({"error": "stripe_unavailable"}, status_code=500)
 
 
 @app.post("/favorite")
@@ -1581,7 +1714,8 @@ async def toggle_favorite(request: Request):
     current_user = get_current_user(request)
     if not current_user:
         return JSONResponse({"error": "not_authenticated"}, status_code=401)
-    if not FAVORITES_DATABASE_URL:
+    token = get_session_token(request)
+    if not BACKEND_BASE_URL or not token:
         return JSONResponse({"error": "favorites_unavailable"}, status_code=503)
     try:
         payload = await request.json()
@@ -1597,32 +1731,28 @@ async def toggle_favorite(request: Request):
         return JSONResponse({"error": "missing_title"}, status_code=400)
 
     try:
-        exists = favorite_exists_for_user(current_user, title, release_date)
+        resp = backend_request(
+            "POST",
+            "/favorites/toggle",
+            token=token,
+            json_body={
+                "title": title,
+                "release_date": release_date,
+                "poster_path": poster_path,
+                "genres": genres,
+            },
+        )
+        data = resp.json() if resp.content else {}
     except Exception:
         return JSONResponse({"error": "favorites_unavailable"}, status_code=503)
-
-    if exists:
-        try:
-            remove_favorite_for_user(current_user, title, release_date)
-        except Exception:
-            return JSONResponse({"error": "favorites_unavailable"}, status_code=503)
-        return JSONResponse({"favorited": False})
-
-    is_premium = get_user_is_premium(current_user)
-    if not is_premium:
-        try:
-            current_count = count_favorites_for_user(current_user)
-        except Exception:
-            return JSONResponse({"error": "favorites_unavailable"}, status_code=503)
-        if current_count >= FREE_FAVORITES_LIMIT:
+    if not resp.ok:
+        detail = data.get("detail") if isinstance(data, dict) else None
+        if detail == "favorites_limit":
             return JSONResponse({"error": "favorites_limit"}, status_code=403)
-
-    try:
-        add_favorite_for_user(current_user, title, release_date, poster_path, genres)
-    except Exception:
+        if detail == "missing_title":
+            return JSONResponse({"error": "missing_title"}, status_code=400)
         return JSONResponse({"error": "favorites_unavailable"}, status_code=503)
-
-    return JSONResponse({"favorited": True})
+    return JSONResponse(data)
 
 
 @app.get("/logout")
